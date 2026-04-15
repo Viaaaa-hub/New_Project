@@ -44,6 +44,23 @@ public class RotaryDialPuzzle : MonoBehaviour
     [Tooltip("显示已确认输入序列的 TextMeshPro")]
     [SerializeField] private TMPro.TextMeshPro inputSequenceText;
 
+    [Header("成功提示文字")]
+    [Tooltip("密码正确时要显示的文字物体（例如 'Which planet will u be next time...'）")]
+    [SerializeField] private GameObject successTextObject;
+
+    [Tooltip("成功文字的 TextMeshProUGUI 组件（Canvas 下的 UI 文字，用于淡入和动态修改文字内容）")]
+    [SerializeField] private TMPro.TextMeshProUGUI successTextMesh;
+
+    [Tooltip("成功时显示的文字内容（留空则使用 TextMeshPro 中已有的文字）")]
+    [TextArea(2, 4)]
+    [SerializeField] private string successMessage = "Which planet will u be next time...";
+
+    [Tooltip("文字淡入时长（秒），0 表示直接显示")]
+    [SerializeField] private float textFadeInDuration = 1.5f;
+
+    [Tooltip("成功音效播放后延迟多久显示文字（秒）")]
+    [SerializeField] private float textShowDelay = 0.3f;
+
     [Header("视觉反馈（可选）")]
     [Tooltip("确认时指针闪烁的颜色")]
     [SerializeField] private Color confirmFlashColor = Color.green;
@@ -107,6 +124,10 @@ public class RotaryDialPuzzle : MonoBehaviour
 
         if (pointerRenderer != null)
             originalPointerColor = pointerRenderer.material.color;
+
+        // 启动时确保成功文字是隐藏的
+        if (successTextObject != null)
+            successTextObject.SetActive(false);
     }
 
     private void Start()
@@ -217,6 +238,53 @@ public class RotaryDialPuzzle : MonoBehaviour
         onCodeCorrect?.Invoke();
 
         Debug.Log("[拨号盘] 密码正确！");
+
+        // 显示成功提示文字
+        StartCoroutine(ShowSuccessText());
+    }
+
+    /// <summary>
+    /// 在成功音效后显示提示文字（带淡入效果）
+    /// </summary>
+    private IEnumerator ShowSuccessText()
+    {
+        // 等待一小段时间，让音效先响起
+        yield return new WaitForSeconds(textShowDelay);
+
+        // 如果指定了 TextMeshPro 组件，且填写了文字内容，则更新文字
+        if (successTextMesh != null && !string.IsNullOrEmpty(successMessage))
+        {
+            successTextMesh.text = successMessage;
+        }
+
+        // 激活文字物体
+        if (successTextObject != null)
+        {
+            successTextObject.SetActive(true);
+
+            // 如果设置了淡入时长且有 TextMeshPro，则做淡入动画
+            if (textFadeInDuration > 0f && successTextMesh != null)
+            {
+                Color startColor = successTextMesh.color;
+                startColor.a = 0f;
+                successTextMesh.color = startColor;
+
+                float elapsed = 0f;
+                while (elapsed < textFadeInDuration)
+                {
+                    elapsed += Time.deltaTime;
+                    float alpha = Mathf.Clamp01(elapsed / textFadeInDuration);
+                    Color c = successTextMesh.color;
+                    c.a = alpha;
+                    successTextMesh.color = c;
+                    yield return null;
+                }
+
+                Color finalColor = successTextMesh.color;
+                finalColor.a = 1f;
+                successTextMesh.color = finalColor;
+            }
+        }
     }
 
     private IEnumerator WrongCodeSequence()

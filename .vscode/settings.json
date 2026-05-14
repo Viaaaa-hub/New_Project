@@ -51,5 +51,5 @@
         "temp/": true,
         "Temp/": true
     },
-    "dotnet.defaultSolution": "DT_GROUP_PROJECT_1.sln"
+    "dotnet.defaultSolution": "New_Project.sln"
 }
